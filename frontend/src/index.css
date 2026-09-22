@@ -1,0 +1,167 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg-primary: #020617;
+  --bg-secondary: #0f172a;
+  --bg-tertiary: #162038;
+  --border-color: #1e293b;
+  --text-primary: #f1f5f9;
+  --text-secondary: #94a3b8;
+  --accent-emerald: #10b981;
+  --accent-amber: #f59e0b;
+  --accent-red: #ef4444;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.leaflet-container {
+  background: var(--bg-secondary);
+  height: 100%;
+  width: 100%;
+}
+
+.leaflet-control-attribution {
+  background: rgba(15, 23, 42, 0.9);
+  color: var(--text-secondary);
+  font-size: 0.7rem;
+}
+
+.leaflet-popup-content-wrapper {
+  background: var(--bg-tertiary);
+  border-radius: 8px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+  border: 1px solid var(--border-color);
+}
+
+.leaflet-popup-content {
+  color: var(--text-primary);
+  margin: 8px 12px;
+  line-height: 1.5;
+}
+
+.leaflet-popup-tip {
+  background: var(--bg-tertiary);
+}
+
+.custom-popup .leaflet-popup-content-wrapper {
+  width: 280px;
+}
+
+.custom-popup .leaflet-popup-content {
+  margin: 0;
+}
+
+@layer utilities {
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-color) transparent;
+  }
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background-color: var(--border-color);
+    border-radius: 3px;
+  }
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  animation: pulse 2s infinite;
+}
+
+.status-dot.connected {
+  background: var(--accent-emerald);
+  box-shadow: 0 0 8px var(--accent-emerald);
+}
+
+.status-dot.disconnected {
+  background: var(--accent-red);
+  box-shadow: 0 0 8px var(--accent-red);
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.threat-badge {
+  @apply px-2 py-0.5 rounded-full text-xs font-medium;
+}
+
+.threat-critical { @apply bg-red-500/20 text-red-400 border border-red-500/30; }
+.threat-high { @apply bg-amber-500/20 text-amber-400 border border-amber-500/30; }
+.threat-moderate { @apply bg-emerald-500/20 text-emerald-400 border border-emerald-500/30; }
+.threat-low { @apply bg-slate-500/20 text-slate-400 border border-slate-500/30; }
+
+.btn {
+  @apply px-4 py-2 rounded-lg font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-950;
+}
+
+.btn-primary {
+  @apply btn bg-emerald-500 text-slate-950 hover:bg-emerald-400 focus:ring-emerald-500;
+}
+
+.btn-secondary {
+  @apply btn bg-slate-800 text-slate-100 hover:bg-slate-700 border border-slate-700 focus:ring-slate-500;
+}
+
+.btn-danger {
+  @apply btn bg-red-500/20 text-red-400 hover:bg-red-500/30 border border-red-500/30 focus:ring-red-500;
+}
+
+.card {
+  @apply bg-slate-850/50 backdrop-blur-sm border border-slate-800 rounded-xl p-4;
+}
+
+.input {
+  @apply w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all;
+}
+
+.slider {
+  @apply w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer;
+}
+
+.slider::-webkit-slider-thumb {
+  @apply appearance-none w-4 h-4 bg-emerald-500 rounded-full shadow-lg transition-transform hover:scale-110;
+}
+
+.slider::-moz-range-thumb {
+  @apply w-4 h-4 bg-emerald-500 rounded-full border-0 shadow-lg;
+}
+
+.layer-control {
+  @apply bg-slate-850/90 backdrop-blur-sm border border-slate-700 rounded-lg p-2;
+}
+
+.layer-control label {
+  @apply flex items-center gap-2 text-sm text-slate-300 cursor-pointer;
+}
+
+.layer-control input[type="checkbox"] {
+  @apply w-4 h-4 accent-emerald-500 rounded border-slate-600;
+}
