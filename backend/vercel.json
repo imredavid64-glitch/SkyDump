@@ -9,5 +9,6 @@
       "memory": 1024
     }
   },
-  "regions": ["iad1"]
+  "regions": ["iad1"],
+  "outputDirectory": "api"
 }
