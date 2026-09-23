@@ -1,14 +1,13 @@
 {
   "buildCommand": "pip install --break-system-packages -r requirements.txt",
-  "devCommand": "uvicorn main:app --reload",
+  "devCommand": "uvicorn api.main:app --reload",
   "installCommand": "pip install --break-system-packages -r requirements.txt",
   "framework": null,
   "functions": {
-    "main.py": {
+    "api/main.py": {
       "maxDuration": 30,
       "memory": 1024
     }
   },
-  "regions": ["iad1"],
-  "outputDirectory": "."
+  "regions": ["iad1"]
 }
