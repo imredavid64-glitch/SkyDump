@@ -1,4 +1,4 @@
-import { useEffect, useRef, useMemo } from 'react'
+import { useEffect, useRef, useMemo, useState } from 'react'
 import { MapContainer, TileLayer, GeoJSON, LayersControl, useMap } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
@@ -348,5 +348,3 @@ export function MapView({ features, selectedFeature, onFeatureSelect, sectorCent
     </MapContainer>
   )
 }
-
-import { useState, useMemo } from 'react'
