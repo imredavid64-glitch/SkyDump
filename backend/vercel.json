@@ -1,7 +1,7 @@
 {
-  "buildCommand": "pip install -r requirements.txt",
+  "buildCommand": "pip install --break-system-packages -r requirements.txt",
   "devCommand": "uvicorn main:app --reload",
-  "installCommand": "pip install -r requirements.txt",
+  "installCommand": "pip install --break-system-packages -r requirements.txt",
   "framework": null,
   "regions": ["iad1"]
 }
