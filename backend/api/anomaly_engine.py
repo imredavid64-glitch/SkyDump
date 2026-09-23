@@ -7,7 +7,7 @@ from shapely.ops import transform as shapely_transform
 from pyproj import Transformer
 import json
 
-from config import settings
+from .config import settings
 
 logger = logging.getLogger(__name__)
 

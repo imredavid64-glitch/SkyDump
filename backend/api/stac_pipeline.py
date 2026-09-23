@@ -7,7 +7,7 @@ from rasterio.windows import Window
 from pystac_client import Client
 from pystac import Item
 
-from config import settings
+from .config import settings
 
 logger = logging.getLogger(__name__)
 
