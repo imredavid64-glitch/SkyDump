@@ -1,0 +1,13 @@
+{
+  "buildCommand": "pip install -r requirements.txt",
+  "devCommand": "uvicorn main:app --reload",
+  "installCommand": "pip install -r requirements.txt",
+  "framework": null,
+  "functions": {
+    "main.py": {
+      "maxDuration": 30,
+      "memory": 1024
+    }
+  },
+  "regions": ["iad1"]
+}
