@@ -3,5 +3,12 @@
   "devCommand": "uvicorn main:app --reload",
   "installCommand": "pip install --break-system-packages -r requirements.txt",
   "framework": null,
-  "regions": ["iad1"]
+  "functions": {
+    "main.py": {
+      "maxDuration": 30,
+      "memory": 1024
+    }
+  },
+  "regions": ["iad1"],
+  "outputDirectory": "."
 }
