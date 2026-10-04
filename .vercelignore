@@ -1,0 +1,37 @@
+# Exclude heavy ML files from Vercel deployment
+backend/ml/
+backend/ml/checkpoints/
+backend/ml/__pycache__/
+backend/scripts/
+backend/alembic/
+backend/alembic.ini
+backend/render.yaml
+backend/railway.json
+backend/skydump.db
+backend/.env
+backend/.env.example
+backend/requirements.txt
+backend/Dockerfile
+
+# Exclude frontend build artifacts
+frontend/dist/
+frontend/node_modules/
+frontend/.vercel/
+
+# Exclude git and IDE
+.git/
+.gitignore
+.vscode/
+.idea/
+*.pyc
+__pycache__/
+.pytest_cache/
+.coverage
+
+# Exclude documentation
+*.md
+!README.md
+
+# Exclude Docker
+docker-compose.yml
+*.dockerfile

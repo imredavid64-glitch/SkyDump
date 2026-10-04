@@ -30,9 +30,19 @@ from api.scheduler import get_scheduler, schedule_job, unschedule_job, load_sche
 from api.stac_pipeline import STACPipeline, get_pipeline
 from api.anomaly_engine import AnomalyEngine, get_engine
 from api.mock_data import get_sector_data, get_all_features, filter_features_by_confidence, calculate_summary_stats, MOCK_SECTORS
-from ml.inference import WasteDetectionInference, ONNXInference
-from ml.timeseries import TimeSeriesAnalyzer
 from api.config import settings
+
+# Optional ML imports (graceful degradation for Vercel)
+try:
+    from ml.inference import WasteDetectionInference, ONNXInference
+    from ml.timeseries import TimeSeriesAnalyzer
+    ML_AVAILABLE = True
+except ImportError:
+    WasteDetectionInference = None
+    ONNXInference = None
+    TimeSeriesAnalyzer = None
+    ML_AVAILABLE = False
+    logging.warning("ML dependencies not available - ML features disabled")
 from api.database import SessionLocal, get_db
 from api.database.models import Sector, WasteSite, User, MonitoringJob, Alert
 
@@ -606,6 +616,8 @@ async def analyze_bbox(
         
         if request.time_series:
             # Time-series analysis
+            if not ML_AVAILABLE:
+                raise HTTPException(501, "Time-series analysis requires ML dependencies (not available in this deployment)")
             await send_progress("loading_timeseries", 15, "Loading time-series data...")
             analyzer = TimeSeriesAnalyzer()
             ds = analyzer.load_sentinel2_stack(
@@ -634,7 +646,7 @@ async def analyze_bbox(
                 }
             )
         
-        elif request.use_ml:
+        elif request.use_ml and ML_AVAILABLE:
             # ML-based detection
             await send_progress("loading_ml", 15, "Loading ML model...")
             item_t1, item_t0 = pipeline.get_latest_two_scenes(
@@ -961,27 +973,30 @@ async def analyze_multisensor(
                     if len(items) >= 2:
                         await send_progress("landsat", base_progress + 20, f"Loading {len(items)} Landsat scenes...")
                         
-                        # Historical trend analysis
-                        from ml.timeseries import TimeSeriesAnalyzer
-                        analyzer = TimeSeriesAnalyzer()
-                        ds = analyzer.load_landsat_stack(
-                            request.bbox, request.start_date, request.end_date
-                        )
-                        ds = analyzer.compute_indices(ds)
-                        changes = analyzer.detect_changes(ds)
-                        ls_features = analyzer.extract_waste_sites(ds, changes)
-                        ls_filtered = filter_features_by_confidence(ls_features, request.confidence_threshold)
-                        
-                        for f in ls_filtered:
-                            f["properties"]["sensor"] = "Landsat"
-                            f["properties"]["source_sensor"] = "landsat"
-                        
-                        all_features.extend(ls_filtered)
-                        sensor_results["landsat"] = {
-                            "count": len(ls_filtered),
-                            "scenes_processed": len(items)
-                        }
-                        await send_progress("landsat", base_progress + progress_per_sensor, f"Landsat: {len(ls_filtered)} historical detections")
+                        if not ML_AVAILABLE:
+                            sensor_results["landsat"] = {"count": 0, "error": "Landsat analysis requires ML dependencies (not available in this deployment)"}
+                        else:
+                            # Historical trend analysis
+                            from ml.timeseries import TimeSeriesAnalyzer
+                            analyzer = TimeSeriesAnalyzer()
+                            ds = analyzer.load_landsat_stack(
+                                request.bbox, request.start_date, request.end_date
+                            )
+                            ds = analyzer.compute_indices(ds)
+                            changes = analyzer.detect_changes(ds)
+                            ls_features = analyzer.extract_waste_sites(ds, changes)
+                            ls_filtered = filter_features_by_confidence(ls_features, request.confidence_threshold)
+                            
+                            for f in ls_filtered:
+                                f["properties"]["sensor"] = "Landsat"
+                                f["properties"]["source_sensor"] = "landsat"
+                            
+                            all_features.extend(ls_filtered)
+                            sensor_results["landsat"] = {
+                                "count": len(ls_filtered),
+                                "scenes_processed": len(items)
+                            }
+                            await send_progress("landsat", base_progress + progress_per_sensor, f"Landsat: {len(ls_filtered)} historical detections")
                     else:
                         sensor_results["landsat"] = {"count": 0, "error": "Insufficient Landsat scenes"}
                         

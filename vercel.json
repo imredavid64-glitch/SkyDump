@@ -3,7 +3,8 @@
   "services": {
     "backend": {
       "root": "backend",
-      "framework": "fastapi"
+      "framework": "fastapi",
+      "installCommand": "pip install -r requirements-vercel.txt"
     },
     "frontend": {
       "root": "frontend",
