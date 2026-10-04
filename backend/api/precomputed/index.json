@@ -1,0 +1,39 @@
+{
+  "sectors": [
+    {
+      "id": "sector-7",
+      "name": "Rotterdam Industrial Zone, Netherlands",
+      "center": [
+        4.35,
+        51.9
+      ],
+      "zoom": 12,
+      "num_sites": 7,
+      "total_area_m2": 1620139.43
+    },
+    {
+      "id": "sector-12",
+      "name": "Amazon River Basin, Brazil",
+      "center": [
+        -55.25,
+        -3.25
+      ],
+      "zoom": 12,
+      "num_sites": 6,
+      "total_area_m2": 1215278.5
+    },
+    {
+      "id": "sector-4",
+      "name": "Congo Basin Forest Reserve, DRC",
+      "center": [
+        18.75,
+        -1.25
+      ],
+      "zoom": 12,
+      "num_sites": 8,
+      "total_area_m2": 2387183.95
+    }
+  ],
+  "generated_at": "2026-09-25T20:12:49.034543Z",
+  "version": "1.0.0"
+}

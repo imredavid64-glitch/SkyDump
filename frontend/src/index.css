@@ -3,6 +3,7 @@
 @tailwind utilities;
 
 :root {
+  /* Dark theme (default) */
   --bg-primary: #020617;
   --bg-secondary: #0f172a;
   --bg-tertiary: #162038;
@@ -12,6 +13,33 @@
   --accent-emerald: #10b981;
   --accent-amber: #f59e0b;
   --accent-red: #ef4444;
+  --header-bg: rgba(2, 6, 23, 0.95);
+  --sidebar-bg: rgba(2, 6, 23, 0.95);
+  --card-bg: rgba(22, 32, 56, 0.5);
+  --input-bg: #1e293b;
+  --btn-secondary-bg: #1e293b;
+  --btn-secondary-hover: #334155;
+  --btn-secondary-border: #334155;
+}
+
+/* Light theme */
+[data-theme="light"] {
+  --bg-primary: #f8fafc;
+  --bg-secondary: #ffffff;
+  --bg-tertiary: #f1f5f9;
+  --border-color: #e2e8f0;
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --accent-emerald: #059669;
+  --accent-amber: #d97706;
+  --accent-red: #dc2626;
+  --header-bg: rgba(248, 250, 252, 0.95);
+  --sidebar-bg: rgba(248, 250, 252, 0.95);
+  --card-bg: rgba(241, 245, 249, 0.8);
+  --input-bg: #f1f5f9;
+  --btn-secondary-bg: #f1f5f9;
+  --btn-secondary-hover: #e2e8f0;
+  --btn-secondary-border: #e2e8f0;
 }
 
 * {
@@ -30,6 +58,7 @@ body {
   color: var(--text-primary);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 .leaflet-container {
@@ -42,6 +71,10 @@ body {
   background: rgba(15, 23, 42, 0.9);
   color: var(--text-secondary);
   font-size: 0.7rem;
+}
+
+[data-theme="light"] .leaflet-control-attribution {
+  background: rgba(248, 250, 252, 0.9);
 }
 
 .leaflet-popup-content-wrapper {
@@ -109,6 +142,21 @@ body {
   50% { opacity: 0.5; }
 }
 
+@keyframes slide-down {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-slide-down {
+  animation: slide-down 0.3s ease-out;
+}
+
 .threat-badge {
   @apply px-2 py-0.5 rounded-full text-xs font-medium;
 }
@@ -122,12 +170,20 @@ body {
   @apply px-4 py-2 rounded-lg font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-950;
 }
 
+[data-theme="light"] .btn {
+  @apply focus:ring-offset-slate-100;
+}
+
 .btn-primary {
   @apply btn bg-emerald-500 text-slate-950 hover:bg-emerald-400 focus:ring-emerald-500;
 }
 
 .btn-secondary {
   @apply btn bg-slate-800 text-slate-100 hover:bg-slate-700 border border-slate-700 focus:ring-slate-500;
+}
+
+[data-theme="light"] .btn-secondary {
+  @apply btn bg-slate-200 text-slate-900 hover:bg-slate-300 border border-slate-300 focus:ring-slate-500;
 }
 
 .btn-danger {
@@ -138,12 +194,24 @@ body {
   @apply bg-slate-850/50 backdrop-blur-sm border border-slate-800 rounded-xl p-4;
 }
 
+[data-theme="light"] .card {
+  @apply bg-slate-100/80 backdrop-blur-sm border border-slate-200 rounded-xl p-4;
+}
+
 .input {
   @apply w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all;
 }
 
+[data-theme="light"] .input {
+  @apply bg-slate-100 border-slate-300 text-slate-900 placeholder-slate-500;
+}
+
 .slider {
   @apply w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer;
+}
+
+[data-theme="light"] .slider {
+  @apply bg-slate-300;
 }
 
 .slider::-webkit-slider-thumb {
@@ -158,10 +226,36 @@ body {
   @apply bg-slate-850/90 backdrop-blur-sm border border-slate-700 rounded-lg p-2;
 }
 
+[data-theme="light"] .layer-control {
+  @apply bg-slate-100/90 backdrop-blur-sm border border-slate-200 rounded-lg p-2;
+}
+
 .layer-control label {
   @apply flex items-center gap-2 text-sm text-slate-300 cursor-pointer;
 }
 
+[data-theme="light"] .layer-control label {
+  @apply text-slate-700;
+}
+
 .layer-control input[type="checkbox"] {
   @apply w-4 h-4 accent-emerald-500 rounded border-slate-600;
+}
+
+/* Mobile responsive utilities */
+@media (max-width: 768px) {
+  .mobile-hide { display: none !important; }
+  .mobile-show { display: flex !important; }
+  .mobile-full { width: 100% !important; }
+  .mobile-stack { flex-direction: column !important; }
+}
+
+/* Touch-friendly map */
+@media (pointer: coarse) {
+  .leaflet-control-zoom-in,
+  .leaflet-control-zoom-out {
+    width: 44px !important;
+    height: 44px !important;
+    font-size: 24px !important;
+  }
 }

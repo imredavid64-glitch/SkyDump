@@ -1,12 +1,18 @@
-import { useState, useCallback, useEffect } from 'react'
-import { MapView } from './components/MapView'
-import { AnomalyList } from './components/AnomalyList'
-import { AnalyticsPanel } from './components/AnalyticsPanel'
-import { SpectralViewer } from './components/SpectralViewer'
-import { Satellite, AlertTriangle, Layers, Download, Settings, RefreshCw, MapPin, Zap } from 'lucide-react'
+import { useState, useCallback, useEffect, Suspense, lazy } from 'react'
+import { Satellite, AlertTriangle, Layers, Download, Settings, RefreshCw, MapPin, Zap, Flag, Plus, Sun, Moon, Wifi, WifiOff, Loader2, Maximize, RotateCcw, X, Share2 } from 'lucide-react'
 import { get_all_features, filter_features_by_confidence, calculate_summary_stats, MOCK_SECTORS } from './data/mockDumpsites'
+import { useAnalysisWebSocket } from './hooks/useAnalysisWebSocket'
+import { useDemoMode } from './hooks/useDemoMode'
+import { OfflineIndicator } from './components/OfflineIndicator'
 
-function Header({ selectedSector, onSectorChange, confidenceThreshold, onConfidenceChange, onExport, onRefresh, isLoading }) {
+// Lazy load heavy components
+const MapView = lazy(() => import('./components/MapView').then(module => ({ default: module.MapView })))
+const AnalyticsPanel = lazy(() => import('./components/AnalyticsPanel'))
+const SpectralViewer = lazy(() => import('./components/SpectralViewer'))
+const CitizenReport = lazy(() => import('./components/CitizenReport'))
+const ComparisonSlider = lazy(() => import('./components/ComparisonSlider'))
+
+function Header({ selectedSector, onSectorChange, confidenceThreshold, onConfidenceChange, onExport, onRefresh, isLoading, onReportClick, onComparisonClick, theme, onThemeToggle, demoMode, demoNarrative, demoStep, nextStep, prevStep, skipDemo, DEMO_SECTORS }) {
   const sectors = Object.entries(MOCK_SECTORS).map(([id, data]) => ({
     id,
     name: data.metadata.name,
@@ -14,7 +20,7 @@ function Header({ selectedSector, onSectorChange, confidenceThreshold, onConfide
   }))
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-40 bg-slate-950/95 backdrop-blur-md border-b border-slate-800">
+    <header className="fixed top-0 left-0 right-0 z-40" style={{ backgroundColor: 'var(--header-bg)', borderBottomColor: 'var(--border-color)' }}>
       <div className="max-w-full mx-auto px-4 py-3 flex items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <div className="relative">
@@ -30,12 +36,13 @@ function Header({ selectedSector, onSectorChange, confidenceThreshold, onConfide
         </div>
 
         <div className="flex items-center gap-4 flex-1 max-w-2xl mx-8">
-          <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-850/50 rounded-lg border border-slate-800">
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border" style={{ backgroundColor: 'var(--card-bg)', borderColor: 'var(--border-color)' }}>
             <MapPin className="w-4 h-4 text-slate-400" />
             <select
               value={selectedSector}
               onChange={(e) => onSectorChange(e.target.value)}
               className="bg-transparent text-slate-100 text-sm focus:outline-none cursor-pointer appearance-none"
+              style={{ color: 'var(--text-primary)' }}
             >
               {sectors.map(s => (
                 <option key={s.id} value={s.id}>{s.name}</option>
@@ -43,7 +50,7 @@ function Header({ selectedSector, onSectorChange, confidenceThreshold, onConfide
             </select>
           </div>
 
-          <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-850/50 rounded-lg border border-slate-800 hidden sm:flex">
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border hidden sm:flex" style={{ backgroundColor: 'var(--card-bg)', borderColor: 'var(--border-color)' }}>
             <Zap className="w-4 h-4 text-emerald-500" />
             <span className="text-xs text-slate-300">AI Confidence</span>
             <input
@@ -60,7 +67,7 @@ function Header({ selectedSector, onSectorChange, confidenceThreshold, onConfide
         </div>
 
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-850/50 rounded-lg border border-slate-800 hidden md:flex">
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border hidden md:flex" style={{ backgroundColor: 'var(--card-bg)', borderColor: 'var(--border-color)' }}>
             <span className="relative flex items-center gap-1.5">
               <span className="status-dot connected" />
               <span className="text-xs text-slate-300">Live Satellite</span>
@@ -68,10 +75,40 @@ function Header({ selectedSector, onSectorChange, confidenceThreshold, onConfide
           </div>
 
           <button
+            onClick={onComparisonClick}
+            className="btn-secondary flex items-center gap-2 hidden sm:flex"
+            title="Before/After Comparison Slider"
+            style={{ backgroundColor: 'var(--btn-secondary-bg)', borderColor: 'var(--btn-secondary-border)' }}
+          >
+            <Maximize className="w-4 h-4" />
+            <span>Compare</span>
+          </button>
+
+          <button
+            onClick={onReportClick}
+            className="btn-primary flex items-center gap-2 hidden sm:flex"
+            title="Report Illegal Dumping"
+          >
+            <Flag className="w-4 h-4" />
+            <span>Report</span>
+          </button>
+
+          <button
+            onClick={onThemeToggle}
+            className="btn-secondary flex items-center gap-2 hidden sm:flex"
+            title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+            style={{ backgroundColor: 'var(--btn-secondary-bg)', borderColor: 'var(--btn-secondary-border)' }}
+          >
+            {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+            <span className="hidden sm:inline">{theme === 'dark' ? 'Light' : 'Dark'}</span>
+          </button>
+
+          <button
             onClick={onRefresh}
             disabled={isLoading}
             className="btn-secondary flex items-center gap-2"
             title="Refresh Data"
+            style={{ backgroundColor: 'var(--btn-secondary-bg)', borderColor: 'var(--btn-secondary-border)' }}
           >
             <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
             <span className="hidden sm:inline">Refresh</span>
@@ -88,8 +125,81 @@ function Header({ selectedSector, onSectorChange, confidenceThreshold, onConfide
         </div>
       </div>
 
+      {demoMode && (
+        <div className="fixed top-16 left-0 right-0 z-35 pointer-events-none px-4">
+          <div className="max-w-4xl mx-auto pointer-events-auto">
+            <div className="bg-gradient-to-r from-emerald-500/10 to-emerald-700/10 border border-emerald-500/30 rounded-xl p-4 animate-slide-down">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-emerald-500/20 flex items-center justify-center">
+                    <Satellite className="w-5 h-5 text-emerald-400" />
+                  </div>
+                  <div>
+                    <p className="font-semibold text-slate-100">Guided Demo Mode</p>
+                    <p className="text-xs text-slate-400">Step {demoStep + 1} of 7 — {demoNarrative}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button onClick={prevStep} disabled={demoStep === 0} className="btn-secondary p-1.5 rounded-lg" title="Previous">←</button>
+                  <button onClick={nextStep} disabled={demoStep === 6} className="btn-primary p-1.5 rounded-lg" title="Next">→</button>
+                  <button onClick={skipDemo} className="btn-secondary p-1.5 rounded-lg text-xs" title="Skip Demo">Skip</button>
+                </div>
+              </div>
+              
+              {demoStep < 6 && (
+                <div className="flex items-center gap-4 text-xs text-slate-400">
+                  <div className="flex items-center gap-1">
+                    <span className="w-5 h-5 rounded-full border border-slate-600 flex items-center justify-center text-[10px] font-bold text-slate-400">1</span>
+                    <span>Select Sector</span>
+                  </div>
+                  <div className="w-8 h-px bg-slate-700" />
+                  <div className="flex items-center gap-1">
+                    <span className="w-5 h-5 rounded-full border border-slate-600 flex items-center justify-center text-[10px] font-bold text-slate-400">2</span>
+                    <span>Set Confidence</span>
+                  </div>
+                  <div className="w-8 h-px bg-slate-700" />
+                  <div className="flex items-center gap-1">
+                    <span className="w-5 h-5 rounded-full border border-slate-600 flex items-center justify-center text-[10px] font-bold text-slate-400">3</span>
+                    <span>Run Analysis</span>
+                  </div>
+                  <div className="w-8 h-px bg-slate-700" />
+                  <div className="flex items-center gap-1">
+                    <span className="w-5 h-5 rounded-full border border-slate-600 flex items-center justify-center text-[10px] font-bold text-slate-400">4</span>
+                    <span>Explore Results</span>
+                  </div>
+                  <div className="w-8 h-px bg-slate-700" />
+                  <div className="flex items-center gap-1">
+                    <span className="w-5 h-5 rounded-full border border-slate-600 flex items-center justify-center text-[10px] font-bold text-slate-400">5</span>
+                    <span>Export Report</span>
+                  </div>
+                  <div className="w-8 h-px bg-slate-700" />
+                  <div className="flex items-center gap-1">
+                    <span className="w-5 h-5 rounded-full border border-slate-600 flex items-center justify-center text-[10px] font-bold text-slate-400">6</span>
+                    <span>Try Other Sectors</span>
+                  </div>
+                </div>
+              )}
+              
+              {demoStep === 6 && (
+                <div className="flex items-center gap-4 text-xs text-slate-400">
+                  <div className="flex items-center gap-1">
+                    <span className="w-5 h-5 rounded-full bg-emerald-500 flex items-center justify-center text-[10px] font-bold text-slate-950">✓</span>
+                    <span className="text-emerald-400">Complete!</span>
+                  </div>
+                  <div className="w-8 h-px bg-emerald-500" />
+                  <div className="flex items-center gap-1">
+                    <span className="w-5 h-5 rounded-full bg-emerald-500 flex items-center justify-center text-[10px] font-bold text-slate-950">✓</span>
+                    <span className="text-emerald-400">Share Demo</span>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="px-4 pb-3 sm:hidden">
-        <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-850/50 rounded-lg border border-slate-800">
+        <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border" style={{ backgroundColor: 'var(--card-bg)', borderColor: 'var(--border-color)' }}>
           <Zap className="w-4 h-4 text-emerald-500" />
           <span className="text-xs text-slate-300">AI Confidence</span>
           <input
@@ -265,21 +375,62 @@ export function App() {
   const [selectedFeature, setSelectedFeature] = useState(null)
   const [isLoading, setIsLoading] = useState(false)
   const [mapKey, setMapKey] = useState(0)
+  const [showReportModal, setShowReportModal] = useState(false)
+  const [showComparison, setShowComparison] = useState(false)
+  const [theme, setTheme] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('theme') || 'dark'
+    }
+    return 'dark'
+  })
+  const [analysisClientId, setAnalysisClientId] = useState<string | null>(null)
+
+  const { progress, isConnected, error: wsError } = useAnalysisWebSocket(analysisClientId)
+  const {
+    demoMode,
+    demoStep,
+    demoSector,
+    demoNarrative,
+    autoPlay,
+    setDemoSector,
+    nextStep,
+    prevStep,
+    skipDemo,
+    getCurrentSectorInfo,
+    DEMO_SECTORS
+  } = useDemoMode()
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme)
+    localStorage.setItem('theme', theme)
+  }, [theme])
+
+  const toggleTheme = useCallback(() => {
+    setTheme(prev => prev === 'dark' ? 'light' : 'dark')
+  }, [])
 
   useEffect(() => {
     const sectorData = get_all_features()
     setFeatures(sectorData)
   }, [selectedSector])
 
+  // Sync demo sector with selected sector
+  useEffect(() => {
+    if (demoMode && demoSector !== selectedSector) {
+      setSelectedSector(demoSector)
+    }
+  }, [demoMode, demoSector, selectedSector])
+
   const handleSectorChange = useCallback((sectorId) => {
     setSelectedSector(sectorId)
+    if (demoMode) setDemoSector(sectorId)
     const sectorData = MOCK_SECTORS[sectorId]
     if (sectorData) {
       setFeatures(sectorData.feature_collection.features)
       setSelectedFeature(null)
       setMapKey(k => k + 1)
     }
-  }, [])
+  }, [demoMode, setDemoSector])
 
   const handleConfidenceChange = useCallback((threshold) => {
     setConfidenceThreshold(threshold)
@@ -308,6 +459,7 @@ export function App() {
 
   const handleRefresh = useCallback(async () => {
     setIsLoading(true)
+    setAnalysisClientId(`analysis_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`)
     await new Promise(r => setTimeout(r, 1000))
     setIsLoading(false)
   }, [])
@@ -316,9 +468,33 @@ export function App() {
     setSelectedFeature(feature)
   }, [])
 
-  const filteredFeatures = filter_features_by_confidence(features, confidenceThreshold)
+  const handleReportClick = useCallback(() => {
+    setShowReportModal(true)
+  }, [])
 
-  return (
+  const handleComparisonClick = useCallback(() => {
+    setShowComparison(true)
+  }, [])
+
+  const handleComparisonClose = useCallback(() => {
+    setShowComparison(false)
+  }, [])
+
+  const handleReportClose = useCallback(() => {
+    setShowReportModal(false)
+  }, [])
+
+  const handleReportSubmit = useCallback((result) => {
+    console.log('Citizen report submitted:', result)
+    setShowReportModal(false)
+  }, [])
+
+  const filteredFeatures = filter_features_by_confidence(features, confidenceThreshold)
+  const sectorInfo = MOCK_SECTORS[selectedSector]
+  const sectorCenter = sectorInfo?.metadata?.center || [0, 0]
+  const sectorName = sectorInfo?.metadata?.name || 'Unknown Sector'
+
+return (
     <div className="h-screen w-screen overflow-hidden">
       <Header
         selectedSector={selectedSector}
@@ -328,16 +504,68 @@ export function App() {
         onExport={handleExport}
         onRefresh={handleRefresh}
         isLoading={isLoading}
+        onReportClick={handleReportClick}
+        onComparisonClick={handleComparisonClick}
+        theme={theme}
+        onThemeToggle={toggleTheme}
+        demoMode={demoMode}
+        demoNarrative={demoNarrative}
+        demoStep={demoStep}
+        nextStep={nextStep}
+        prevStep={prevStep}
+        skipDemo={skipDemo}
+        DEMO_SECTORS={DEMO_SECTORS}
       />
 
       <main className="h-full w-full relative">
-        <MapView
-          key={mapKey}
-          features={filteredFeatures}
-          selectedFeature={selectedFeature}
-          onFeatureSelect={handleFeatureSelect}
-          sectorCenter={MOCK_SECTORS[selectedSector]?.metadata?.center || [0, 0]}
-        />
+        {/* Live Analysis Progress Overlay */}
+        {progress && (
+          <div className="fixed top-16 left-1/2 -translate-x-1/2 z-50 w-full max-w-md px-4 pointer-events-none">
+            <div className="bg-slate-900/95 backdrop-blur-sm border border-slate-700 rounded-xl shadow-2xl p-4 animate-slide-down">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <Loader2 className="w-5 h-5 text-emerald-500 animate-spin" />
+                  <span className="font-semibold text-slate-100">Live Analysis</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className={`w-2 h-2 rounded-full ${isConnected ? 'bg-emerald-500' : 'bg-red-500'}`} />
+                  <span className="text-xs text-slate-400">{isConnected ? 'Live' : 'Disconnected'}</span>
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                <div>
+                  <div className="flex justify-between text-xs mb-1">
+                    <span className="text-slate-300">{progress.stage}</span>
+                    <span className="font-mono text-emerald-400">{progress.progress}%</span>
+                  </div>
+                  <div className="h-2 bg-slate-800 rounded-full overflow-hidden">
+                    <div 
+                      className="h-full bg-emerald-500 transition-all duration-300 ease-out"
+                      style={{ width: `${progress.progress}%` }}
+                    />
+                  </div>
+                </div>
+                
+                <p className="text-sm text-slate-300 truncate">{progress.message}</p>
+                
+                {wsError && (
+                  <p className="text-xs text-red-400 mt-2">{wsError}</p>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+        
+        <Suspense fallback={<div className="absolute inset-0 flex items-center justify-center bg-slate-900/50"><div className="animate-spin rounded-full h-12 w-12 border-4 border-emerald-500 border-t-transparent" /></div>}>
+          <MapView
+            key={mapKey}
+            features={filteredFeatures}
+            selectedFeature={selectedFeature}
+            onFeatureSelect={handleFeatureSelect}
+            sectorCenter={MOCK_SECTORS[selectedSector]?.metadata?.center || [0, 0]}
+          />
+        </Suspense>
 
         <Sidebar
           features={features}
@@ -349,8 +577,34 @@ export function App() {
 
         <RightPanel selectedFeature={selectedFeature} />
 
-        <AnalyticsPanel features={filteredFeatures} className="fixed bottom-4 right-4 w-80 md:w-96 z-20" />
+        <Suspense fallback={<div className="fixed bottom-4 right-4 w-80 md:w-96 z-20 flex items-center justify-center"><div className="animate-spin rounded-full h-8 w-8 border-2 border-emerald-500 border-t-transparent" /></div>}>
+          <AnalyticsPanel features={filteredFeatures} className="fixed bottom-4 right-4 w-80 md:w-96 z-20" />
+        </Suspense>
       </main>
+
+      {showReportModal && (
+        <Suspense fallback={<div className="fixed inset-0 flex items-center justify-center bg-black/80"><div className="animate-spin rounded-full h-12 w-12 border-4 border-emerald-500 border-t-transparent" /></div>}>
+          <CitizenReport
+            onClose={handleReportClose}
+            onSubmit={handleReportSubmit}
+          />
+        </Suspense>
+      )}
+
+      {showComparison && (
+        <Suspense fallback={<div className="fixed inset-0 flex items-center justify-center bg-black/80"><div className="animate-spin rounded-full h-12 w-12 border-4 border-emerald-500 border-t-transparent" /></div>}>
+          <ComparisonSlider
+            features={filteredFeatures}
+            selectedFeature={selectedFeature}
+            onFeatureSelect={handleFeatureSelect}
+            sectorCenter={sectorCenter}
+            sectorName={sectorName}
+            onClose={handleComparisonClose}
+          />
+        </Suspense>
+      )}
+
+      <OfflineIndicator />
     </div>
   )
 }

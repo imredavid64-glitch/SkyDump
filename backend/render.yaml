@@ -1,0 +1,32 @@
+services:
+  - type: web
+    name: skydump-api
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    envVars:
+      - key: DEBUG
+        value: "false"
+      - key: STAC_API_URL
+        value: "https://planetarycomputer.microsoft.com/api/stac/v1"
+      - key: MAX_CLOUD_COVER
+        value: "20"
+      - key: NDVI_DELTA_THRESHOLD
+        value: "-0.35"
+      - key: SWIR_THRESHOLD
+        value: "0.25"
+      - key: MIN_CONTOUR_AREA
+        value: "10000.0"
+      - key: ALLOWED_ORIGINS
+        value: '["https://skydump.vercel.app"]'
+      - key: EXTRA_ALLOWED_ORIGINS
+        value: ""
+      - key: JWT_SECRET
+        generateValue: true
+      - key: SENTINEL2_COLLECTION
+        value: "sentinel-2-l2a"
+    healthCheckPath: /health
+    autoDeploy: true
+    plan: free
+    region: oregon
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
